@@ -6,17 +6,25 @@ let bees = []; // Array to store bees positions
 let fireflies = []; // Array to store firefly positions
 let numFireflies = 10; // Number of fireflies
 let currentGradient = 0; // 3 Gradients
+let staticCanvas; // For static elements like background, mushrooms, rocks
+let dynamicCanvas; // For dynamic elements like fireflies
 
 //---------------------------
 // Set Up
 //---------------------------
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  currentGradient = floor(random(3));
-  drawStaticElements(); // Draw static elements only once
+  staticCanvas = createGraphics(width, height);
+  dynamicCanvas = createGraphics(width, height);
 
-  for (let i = 0; i < numFireflies; i++) {
-    fireflies.push(new Firefly());
+  let seed = floor(random(10000));
+  randomSeed(seed);
+  drawStaticElements(staticCanvas); // Draws once on staticCanvas
+
+  // Populate bees and fireflies arrays with initial positions
+  for (let i = 0; i < 10; i++) {
+    bees.push({ x: random(100, width - 100), y: random(100, height - 100) });
+    fireflies.push({ x: random(100, width - 100), y: random(100, height - 100) });
   }
 }
 
@@ -24,16 +32,22 @@ function setup() {
 // Main Draw Function
 //---------------------------
 function draw() {
-  animate(); // Animate moving elements
+  clear(dynamicCanvas);
+  image(staticCanvas, 0, 0); // Draw static elements
+  image(dynamicCanvas, 0, 0); // Overlay dynamic elements without clearing static background
+
+  animate(dynamicCanvas);
 }
+
 
 //---------------------------
 // Main Animate Function
 //---------------------------
-function animate() {
+function animate(canvas) {
   if (currentGradient === 0) {
-  } else if (currentGradient === 1) {
+    animateBees(canvas);
   } else if (currentGradient === 2) {
+    animateFireflies(canvas); // Pass dynamicCanvas as an argument
   }
 }
 
@@ -51,143 +65,151 @@ function drawStaticElements() {
   }
 
   if (currentGradient === 0) {
-    drawBees();
   } else if (currentGradient === 1) {
     placeCaterpillar();
   } else if (currentGradient === 2) {
-    drawFireflies();
   }
 }
 
 // Draw the Background
 function drawBackground(gradientIndex) {
-  for (let i = 0; i < height; i++) {
-    let inter = map(i, 0, height, 0, 1);
+  for (let i = 0; i < staticCanvas.height; i++) {
+    let inter = map(i, 0, staticCanvas.height, 0, 1);
     let c;
     if (gradientIndex === 0) {
-      c = lerpColor(color(112, 249, 255), color(0, 190, 65), inter);
+      c = lerpColor(staticCanvas.color(112, 249, 255), staticCanvas.color(0, 190, 65), inter);
     } else if (gradientIndex === 1) {
-      c = lerpColor(color(255, 220, 70), color(92, 190, 0), inter);
+      c = lerpColor(staticCanvas.color(255, 220, 70), staticCanvas.color(92, 190, 0), inter);
     } else if (gradientIndex === 2) {
-      c = lerpColor(color(40, 60, 85), color(0, 57, 36), inter);
+      c = lerpColor(staticCanvas.color(40, 60, 85), staticCanvas.color(0, 57, 36), inter);
     }
-    stroke(c);
-    line(0, i, width, i);
+    staticCanvas.stroke(c);
+    staticCanvas.line(0, i, staticCanvas.width, i);
   }
 }
 
 // Draw the Caterpillar
 function drawCaterpillar(x, y) {
-    let segments = 7; // Number of body segments
-    let segmentSize = 20; // Size of each segment
-    let caterpillarColor = color(20, 120, 20); // A subdued green for the body
+  let segments = 7; // Number of body segments
+  let segmentSize = 20; // Size of each segment
+  let caterpillarColor = staticCanvas.color(20, 120, 20); // A subdued green for the body
 
-    // Draw the body segments
-    for (let i = 0; i < segments; i++) {
-        let segmentX = x + (i - segments / 2) * segmentSize * 0.6;
-        let segmentY = y + sin(i * PI / 3) * 5; // Add undulation to the body
+  // Draw the body segments
+  for (let i = 0; i < segments; i++) {
+    let segmentX = x + (i - segments / 2) * segmentSize * 0.6;
+    let segmentY = y + sin(i * PI / 3) * 5; // Add undulation to the body
 
-        fill(caterpillarColor);
-        noStroke();
-        ellipse(segmentX, segmentY, segmentSize, segmentSize); // Body segments
+    staticCanvas.fill(caterpillarColor);
+    staticCanvas.noStroke();
+    staticCanvas.ellipse(segmentX, segmentY, segmentSize, segmentSize); // Body segments
 
-        // Shading for 3D effect on segments
-        fill(0, 0, 0, 20); // Semi-transparent black for shadow
-        ellipse(segmentX - segmentSize / 4, segmentY, segmentSize / 1.5, segmentSize / 1.5);
+    // Shading for 3D effect on segments
+    staticCanvas.fill(0, 0, 0, 20); // Semi-transparent black for shadow
+    staticCanvas.ellipse(segmentX - segmentSize / 4, segmentY, segmentSize / 1.5, segmentSize / 1.5);
 
-        // Draw one spot on each segment
-        drawSpotOnSegment(segmentX, segmentY, segmentSize);
-    }
+    // Draw one spot on each segment
+    drawSpotOnSegment(segmentX, segmentY, segmentSize);
+  }
 
-    // Simplified head without facial features for realism
-    let headX = x + (-(segments / 2) * segmentSize * 0.6);
-    fill(caterpillarColor);
-    ellipse(headX, y, segmentSize, segmentSize); // Head
+  // Simplified head without facial features for realism
+  let headX = x + (-(segments / 2) * segmentSize * 0.6);
+  staticCanvas.fill(caterpillarColor);
+  staticCanvas.ellipse(headX, y, segmentSize, segmentSize); // Head
 
-    // Simple antennae
-    stroke(20, 120, 20);
-    strokeWeight(2);
-    noFill();
-    arc(headX, y - segmentSize / 2, segmentSize / 2, segmentSize / 2, PI - QUARTER_PI, PI + QUARTER_PI);
+  // Simple antennae
+  staticCanvas.stroke(20, 120, 20);
+  staticCanvas.strokeWeight(2);
+  staticCanvas.noFill();
+  staticCanvas.arc(headX, y - segmentSize / 2, segmentSize / 2, segmentSize / 2, PI - QUARTER_PI, PI + QUARTER_PI);
 }
 
 // Draw Caterpillar's spots
 function drawSpotOnSegment(x, y, size) {
   let spotSize = 6; // Size of the spot
 
-    fill(255, 204, 0); // Bright color for the spot
-    noStroke();
-    ellipse(x - 2, y - 3, spotSize, spotSize);
+  staticCanvas.fill(255, 204, 0); // Bright color for the spot
+  staticCanvas.noStroke();
+  staticCanvas.ellipse(x - 2, y - 3, spotSize, spotSize);
 }
 
-// Draw Bees
+// Draw Bees dynamically
 function drawBees() {
   for (let i = 0; i < 10; i++) {
     let beeX = random(100, width - 100);
     let beeY = random(100, height - 100);
-    drawBee(beeX, beeY);
+    drawBee(beeX, beeY, dynamicCanvas); // Pass dynamicCanvas as an argument
   }
 }
 
-// Draw a Bee
-function drawBee(x, y) {
-    // Random angle within a limited range for a slight tilt
-    // Here, limiting the angle to +/- 15 degrees (converted to radians)
-    let angle = random(-PI / 12, PI / 12); // PI / 12 radians is equivalent to 15 degrees
+// Adjusted Draw a Bee function to accept canvas as parameter
+function drawBee(x, y, canvas) {
+  // Random angle for a slight tilt
+  let angle = random(-PI / 12, PI / 12); // +/- 15 degrees
 
-    push(); // Start a new drawing state
-    translate(x, y); // Move to the position where the bee should be drawn
-    rotate(angle); // Rotate the drawing canvas by the random angle
+  canvas.push(); // Isolate transformations
+  canvas.translate(x, y);
+  canvas.rotate(angle);
 
-    // Body of the bee
-    fill(255, 200, 0); // Yellow color for the body
-    ellipse(x, y, 30, 15); // Oval shape for the bee's body
+  // Body of the bee
+  canvas.fill(255, 200, 0); // Yellow
+  canvas.noStroke();
+  canvas.ellipse(0, 0, 30, 15); // Adjusted position due to translate
+  canvas.noStroke();
 
-    // Bee's stripes
-    fill(0); // Black color for the stripes
-    rect(x + 3, y - 8, 4, 15, 2); // stripe
-    rect(x - 4, y - 8, 4, 15, 2); //
-    rect(x - 11, y - 7, 4, 13, 2); // 
+  // Bee's stripes
+  canvas.fill(0); // Black
+  canvas.noStroke();
+  canvas.rect(3, -8, 4, 15, 2);
+  canvas.rect(-4, -8, 4, 15, 2);
+  canvas.rect(-11, -7, 4, 13, 2);
+  canvas.noStroke();
 
-    // Wings
-    fill(255, 255, 255, 150); // Semi-transparent white for the wings
-    ellipse(x - 8, y - 12, 30, 15); // Left wing
-    ellipse(x, y - 12, 30, 15); // Right wing
+  // Wings
+  canvas.fill(255, 255, 255, 150); // Semi-transparent white
+  canvas.ellipse(-8, -12, 30, 15); // Left wing
+  canvas.ellipse(0, -12, 30, 15); // Right wing
+  canvas.noStroke();
 
-    pop(); // Restores the previous drawing state
+  canvas.pop(); // Reset transformation state
 }
 
-// Draw Fireflies
+// Draw Fireflies dynamically
 function drawFireflies() {
   for (let i = 0; i < 10; i++) {
     let fireflyX = random(100, width - 100);
     let fireflyY = random(100, height - 100);
-    drawFirefly(fireflyX, fireflyY);
+    drawFirefly(fireflyX, fireflyY, dynamicCanvas); // Pass dynamicCanvas as an argument
   }
 }
 
-// Draw a Firefly
-function drawFirefly(x, y) {
-  let bodyColor = color(255, 255, 0, 100); // Translucent yellow color for the firefly's body
-  let lightColor = color(255, 255, 0, 50); // Translucent yellow for the light
-  let glowColor = color(255, 255, 0, 20); // Very translucent yellow for glow
+// Adjusted Draw a Firefly function to accept canvas as parameter
+function drawFirefly(x, y, canvas) {
+  let bodyColor = canvas.color(255, 255, 0, 100); // Translucent yellow for the body
+  let lightColor = canvas.color(255, 255, 0, 50); // Translucent yellow for the light
+  let glowColor = canvas.color(255, 255, 0, 20); // Very translucent yellow for glow
 
   // Draw firefly's body
-  fill(bodyColor);
-  ellipse(x, y, 10, 5);
+  canvas.fill(bodyColor);
+  canvas.noStroke();
+  canvas.ellipse(x, y, 10, 5);
+  canvas.noStroke();
 
   // Draw firefly's light with a glowing effect
   for (let i = 0; i < 10; i++) {
     let glowSize = random(20, 30); // Random size for the glow
     let glowX = random(-5, 5); // Random position within a range
     let glowY = random(-5, 5); // Random position within a range
-    fill(glowColor);
-    ellipse(x + glowX, y + glowY, glowSize, glowSize);
+    canvas.fill(glowColor);
+    canvas.noStroke();
+    canvas.ellipse(x + glowX, y + glowY, glowSize, glowSize);
+    canvas.noStroke();
   }
 
   // Draw the core light
-  fill(lightColor);
-  ellipse(x + 5, y - 2, 10, 10);
+  canvas.fill(lightColor);
+  canvas.noStroke();
+  canvas.ellipse(x + 5, y - 2, 10, 10);
+  canvas.noStroke();
 }
 
 // Draw Rocks
@@ -199,10 +221,10 @@ function drawRocks(amount) {
     
     // Only add rock if it doesn't overlap with existing objects
     if (!isTooClose(x, y, size)) {
-      fill(125, 125, 125, 200);
-      noStroke();
-      ellipse(x, y, size, size * random(0.5, 0.8));
-      objects.push({x, y, size});
+      staticCanvas.fill(125, 125, 125, 200); // Specify color on staticCanvas
+      staticCanvas.noStroke(); // No border on staticCanvas
+      staticCanvas.ellipse(x, y, size, size * random(0.5, 0.8)); // Draw ellipse on staticCanvas
+      objects.push({x, y, size}); // Store object information for collision detection or other logic
     }
   }
 }
@@ -218,34 +240,34 @@ function drawMushroom(x, y) {
     let grassX = x + i;
     let grassHeight = random(5, 15);
     let grassWidth = random(1, 2);
-    drawGrass(grassX, y + stemHeight, grassHeight, grassWidth);
+    drawGrass(grassX, y + stemHeight, grassHeight, grassWidth, staticCanvas);
   }
 
-    drawDirt(x + 5, y + stemHeight, 5);
+    drawDirt(x + 5, y + stemHeight, 5, staticCanvas);
 
   // Stem
-  fill(204, 102, 0, 150);
-  noStroke();
-  rect(x, y, 10, stemHeight);
+  staticCanvas.fill(204, 102, 0, 150);
+  staticCanvas.noStroke();
+  staticCanvas.rect(x, y, 10, stemHeight);
 
   // Gills
-  drawGills(x + 5, y - 5, capWidth / 1.2, stemHeight / 10);
+  drawGills(x + 5, y - 5, capWidth / 1.2, stemHeight / 10, staticCanvas);
 
   // Soft Cap with Blended Edges
-  let capBaseColor = color(random(100, 255), 0, 0, 150);
+  let capBaseColor = staticCanvas.color(random(100, 255), 0, 0, 150);
   for (let i = 0; i < 5; i++) {
-    let thisCapColor = lerpColor(color(255, 100, 100, 50), capBaseColor, i * 0.2);
-    fill(thisCapColor);
-    noStroke();
-    arc(x + 5, y, capWidth * (1 + i * 0.1), capHeight * (1 + i * 0.1), PI, 0, OPEN);
+    let thisCapColor = lerpColor(staticCanvas.color(255, 100, 100, 50), capBaseColor, i * 0.2);
+    staticCanvas.fill(thisCapColor);
+    staticCanvas.noStroke();
+    staticCanvas.arc(x + 5, y, capWidth * (1 + i * 0.1), capHeight * (1 + i * 0.1), PI, 0, OPEN);
   }
 
     // Draw spots on cap
-  drawSpots(x + 5, y, capWidth, capHeight);
+  drawSpots(x + 5, y, capWidth, capHeight, staticCanvas);
 }
 
 // Draw Spots on Mushroom Caps
-function drawSpots(x, y, capWidth, capHeight) {
+function drawSpots(x, y, capWidth, capHeight, canvas) {
   let spots = []; // Store {x, y, size} of spots for current mushroom
   let spotCount = int(random(5, 15)); // Random number of spots
 
@@ -257,9 +279,9 @@ function drawSpots(x, y, capWidth, capHeight) {
       let spotSize = random(2, 7); // Random spot size
 
       if (!isSpotTooClose(spots, spotX, spotY, spotSize)) {
-        fill(255, 255, 255, 200); // White spots
-        noStroke();
-        ellipse(spotX, spotY, spotSize, spotSize);
+        canvas.fill(255, 255, 255, 200); // White spots
+        canvas.noStroke();
+        canvas.ellipse(spotX, spotY, spotSize, spotSize);
         spots.push({x: spotX, y: spotY, size: spotSize}); // Add spot to array
         break; // Exit loop after successful placement
       }
@@ -269,34 +291,34 @@ function drawSpots(x, y, capWidth, capHeight) {
 }
 
 // Draw Mushroom Gills
-function drawGills(centerX, startY, capWidth, gillLength) {
+function drawGills(centerX, startY, capWidth, gillLength, canvas) {
   let gillSpacing = 4; // Space between each gill line
   let gillCount = capWidth / gillSpacing;
-  stroke(120, 60, 0, 100);
-  strokeWeight(2);
+  canvas.stroke(120, 60, 0, 100);
+  canvas.strokeWeight(2);
 
   for (let i = 0; i < gillCount; i++) {
     let xOffset = i * gillSpacing - capWidth / 2;
     let gillStartX = centerX + xOffset;
     let gillEndX = centerX + xOffset * 0.8; // Adjust for slight angle
     let gillEndY = startY + gillLength;
-    line(gillStartX, startY, gillEndX, gillEndY);
+    canvas.line(gillStartX, startY, gillEndX, gillEndY);
   }
 }
 
 // Draw Grass around Mushroom Stems
-function drawGrass(x, baseY, height, width) {
-  push(); // Save the current drawing style settings and transformations
-  strokeWeight(width);
-  stroke(34, 139, 34, 100); // Semi-transparent green color for a subtle look
-  noFill();
+function drawGrass(x, baseY, height, width, canvas) {
+  canvas.push(); // Save the current drawing style settings and transformations
+  canvas.strokeWeight(width);
+  canvas.stroke(34, 139, 34, 100); // Semi-transparent green color for a subtle look
+  canvas.noFill();
   // Drawing a simple line for now, can be adjusted for more complexity
-  line(x, baseY, x, baseY - height);
-  pop(); // Restore the original drawing style settings and transformations
+  canvas.line(x, baseY, x, baseY - height);
+  canvas.pop(); // Restore the original drawing style settings and transformations
 }
 
 // Draw Dirt around Mushroom Stems
-function drawDirt(x, y, amount) {
+function drawDirt(x, y, amount, canvas) {
   for (let i = 0; i < amount; i++) {
     // Position each rock near the base of a mushroom
     let dirtX = x + random(-20, 20);
@@ -304,16 +326,46 @@ function drawDirt(x, y, amount) {
     let dirtWidth = random(3, 7);
     let dirtHeight = dirtWidth * random(0.5, 1);
 
-    fill(123, 85, 77, 150);
-    noStroke();
-    ellipse(dirtX, dirtY, dirtWidth, dirtHeight);
+    canvas.fill(123, 85, 77, 150);
+    canvas.noStroke();
+    canvas.ellipse(dirtX, dirtY, dirtWidth, dirtHeight);
   }
 }
 
 //---------------------------
 // Animate Various Things
 //---------------------------
+function animateBees(canvas) {
+  canvas.clear(); // Clear the dynamicCanvas
+  for (let bee of bees) {
+    // Update bee's position by a small random amount
+    bee.x += random(-3, 3);
+    bee.y += random(-3, 3);
+    
+    // Ensure bee stays within canvas bounds
+    bee.x = constrain(bee.x, 0, width);
+    bee.y = constrain(bee.y, 0, height);
 
+    // Redraw bee at its new position
+    drawBee(bee.x, bee.y, canvas);
+  }
+}
+
+function animateFireflies(canvas) {
+  canvas.clear(); // Clear the dynamicCanvas
+  for (let firefly of fireflies) {
+    // Apply a small random movement to each firefly
+    firefly.x += random(-2, 2);
+    firefly.y += random(-2, 2);
+
+    // Ensure the firefly stays within the bounds of the canvas
+    firefly.x = constrain(firefly.x, 0, width);
+    firefly.y = constrain(firefly.y, 0, height);
+
+    // Draw the firefly in its new position
+    drawFirefly(firefly.x, firefly.y, canvas);
+  }
+}
 
 //---------------------------
 // Place Various Things
@@ -382,35 +434,3 @@ function placeCaterpillar() {
 //---------------------------
 // Classes
 //---------------------------
-// Updated Firefly class for smoother movement
-class Firefly {
-  constructor() {
-    this.position = createVector(random(width), random(height));
-    this.velocity = p5.Vector.random2D();
-    this.velocity.setMag(random(0.5, 2)); // Random speed
-    this.acceleration = createVector(0, 0);
-  }
-
-  update() {
-    this.position.add(this.velocity);
-
-    // Optional: Add some acceleration or change in velocity for more dynamic movement
-    this.acceleration = p5.Vector.random2D();
-    this.acceleration.mult(random(0.1)); // Small acceleration
-    this.velocity.add(this.acceleration);
-    this.velocity.limit(2); // Limit speed
-
-    // Wraparound logic to keep fireflies within the canvas
-    if (this.position.x > width) { this.position.x = 0; }
-    if (this.position.x < 0) { this.position.x = width; }
-    if (this.position.y > height) { this.position.y = 0; }
-    if (this.position.y < 0) { this.position.y = height; }
-  }
-
-  display() {
-    // Your existing display logic for drawing the firefly
-    fill(255, 255, 0, 150); // Yellow with some transparency
-    noStroke();
-    ellipse(this.position.x, this.position.y, 8, 8);
-  }
-}
