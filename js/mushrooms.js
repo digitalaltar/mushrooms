@@ -5,6 +5,8 @@ let objects = []; // Store {x, y, size} of both rocks and mushrooms
 let bees = []; // Array to store bees positions
 let fireflies = []; // Array to store firefly positions
 let numFireflies = 10; // Number of fireflies
+let leaves = [];
+let fallingLeaves = []; // Array to store falling leaves positions and properties
 let currentGradient = 0; // 3 Gradients
 let staticCanvas; // For static elements like background, mushrooms, rocks
 let dynamicCanvas; // For dynamic elements like fireflies
@@ -21,24 +23,58 @@ function setup() {
   randomSeed(seed);
   drawStaticElements(staticCanvas); // Draws once on staticCanvas
 
-  // Populate bees and fireflies arrays with initial positions
-  for (let i = 0; i < 10; i++) {
+  let numBees = Math.floor(random(3, 11)); // Random number of bees
+  bees = []; // Ensure the bees array is empty before populating
+
+  // Populate the bees array
+  for (let i = 0; i < numBees; i++) {
     bees.push({ x: random(100, width - 100), y: random(100, height - 100) });
+  }
+
+  let numFireflies = Math.floor(random(5, 20)); // Random number of fireflies
+  fireflies = []; // Ensure the fireflies array is empty before populating
+
+  // Populate fireflies arrays
+  for (let i = 0; i < numFireflies; i++) {
     fireflies.push({ x: random(100, width - 100), y: random(100, height - 100) });
   }
+
+  initializeFallingLeaves(); // Start the falling leaves effect
+}
+
+// Initialize Falling Leaves
+function initializeFallingLeaves() {
+    for (let i = 0; i < 20; i++) {
+        let colorIndex = Math.floor(random(3)); // Assume 3 colors as before
+        // Define colors
+        const colors = [
+          [30, 150, 30],  // Green
+          [255, 215, 0],  // Yellow
+          [165, 42, 42]   // Brown
+        ];
+        let chosenColor = colors[colorIndex];
+
+        fallingLeaves.push({
+            x: random(width),
+            y: -50,
+            size: random(50, 100), // Increase size range for larger leaves
+            rotation: random(TWO_PI),
+            speed: random(0.4, 1), // Decrease speed range for slower falling
+            color: chosenColor // Assign the chosen color
+        });
+    }
 }
 
 //---------------------------
 // Main Draw Function
 //---------------------------
 function draw() {
-  clear(dynamicCanvas);
-  image(staticCanvas, 0, 0); // Draw static elements
-  image(dynamicCanvas, 0, 0); // Overlay dynamic elements without clearing static background
-
-  animate(dynamicCanvas);
+    dynamicCanvas.clear(); // Clear only the dynamic canvas to remove trails
+    animate(dynamicCanvas); // Animate dynamic elements like falling leaves
+    
+    image(staticCanvas, 0, 0); // Static elements drawn once
+    image(dynamicCanvas, 0, 0); // Dynamic elements redrawn each frame
 }
-
 
 //---------------------------
 // Main Animate Function
@@ -46,13 +82,15 @@ function draw() {
 function animate(canvas) {
   if (currentGradient === 0) {
     animateBees(canvas);
+  } else if (currentGradient == 1) {
+    animateFallingLeaves(canvas);
   } else if (currentGradient === 2) {
     animateFireflies(canvas); // Pass dynamicCanvas as an argument
   }
 }
 
 //---------------------------
-// Draw Various Things
+// Draw Static Elements
 //---------------------------
 // Draw Static Elements
 function drawStaticElements() {
@@ -65,8 +103,10 @@ function drawStaticElements() {
   }
 
   if (currentGradient === 0) {
+    scatterFlowers(staticCanvas);
   } else if (currentGradient === 1) {
     placeCaterpillar();
+    scatterLeaves(staticCanvas); // Scatter 50 leaves
   } else if (currentGradient === 2) {
   }
 }
@@ -85,6 +125,23 @@ function drawBackground(gradientIndex) {
     }
     staticCanvas.stroke(c);
     staticCanvas.line(0, i, staticCanvas.width, i);
+  }
+}
+
+// Draw Rocks
+function drawRocks(amount) {
+  for (let i = 0; i < amount; i++) {
+    let x = random(width);
+    let y = random(height);
+    let size = random(10, 25);
+    
+    // Only add rock if it doesn't overlap with existing objects
+    if (!isTooClose(x, y, size)) {
+      staticCanvas.fill(125, 125, 125, 200); // Specify color on staticCanvas
+      staticCanvas.noStroke(); // No border on staticCanvas
+      staticCanvas.ellipse(x, y, size, size * random(0.5, 0.8)); // Draw ellipse on staticCanvas
+      objects.push({x, y, size}); // Store object information for collision detection or other logic
+    }
   }
 }
 
@@ -130,103 +187,6 @@ function drawSpotOnSegment(x, y, size) {
   staticCanvas.fill(255, 204, 0); // Bright color for the spot
   staticCanvas.noStroke();
   staticCanvas.ellipse(x - 2, y - 3, spotSize, spotSize);
-}
-
-// Draw Bees dynamically
-function drawBees() {
-  for (let i = 0; i < 10; i++) {
-    let beeX = random(100, width - 100);
-    let beeY = random(100, height - 100);
-    drawBee(beeX, beeY, dynamicCanvas); // Pass dynamicCanvas as an argument
-  }
-}
-
-// Adjusted Draw a Bee function to accept canvas as parameter
-function drawBee(x, y, canvas) {
-  // Random angle for a slight tilt
-  let angle = random(-PI / 12, PI / 12); // +/- 15 degrees
-
-  canvas.push(); // Isolate transformations
-  canvas.translate(x, y);
-  canvas.rotate(angle);
-
-  // Body of the bee
-  canvas.fill(255, 200, 0); // Yellow
-  canvas.noStroke();
-  canvas.ellipse(0, 0, 30, 15); // Adjusted position due to translate
-  canvas.noStroke();
-
-  // Bee's stripes
-  canvas.fill(0); // Black
-  canvas.noStroke();
-  canvas.rect(3, -8, 4, 15, 2);
-  canvas.rect(-4, -8, 4, 15, 2);
-  canvas.rect(-11, -7, 4, 13, 2);
-  canvas.noStroke();
-
-  // Wings
-  canvas.fill(255, 255, 255, 150); // Semi-transparent white
-  canvas.ellipse(-8, -12, 30, 15); // Left wing
-  canvas.ellipse(0, -12, 30, 15); // Right wing
-  canvas.noStroke();
-
-  canvas.pop(); // Reset transformation state
-}
-
-// Draw Fireflies dynamically
-function drawFireflies() {
-  for (let i = 0; i < 10; i++) {
-    let fireflyX = random(100, width - 100);
-    let fireflyY = random(100, height - 100);
-    drawFirefly(fireflyX, fireflyY, dynamicCanvas); // Pass dynamicCanvas as an argument
-  }
-}
-
-// Adjusted Draw a Firefly function to accept canvas as parameter
-function drawFirefly(x, y, canvas) {
-  let bodyColor = canvas.color(255, 255, 0, 100); // Translucent yellow for the body
-  let lightColor = canvas.color(255, 255, 0, 50); // Translucent yellow for the light
-  let glowColor = canvas.color(255, 255, 0, 20); // Very translucent yellow for glow
-
-  // Draw firefly's body
-  canvas.fill(bodyColor);
-  canvas.noStroke();
-  canvas.ellipse(x, y, 10, 5);
-  canvas.noStroke();
-
-  // Draw firefly's light with a glowing effect
-  for (let i = 0; i < 10; i++) {
-    let glowSize = random(20, 30); // Random size for the glow
-    let glowX = random(-5, 5); // Random position within a range
-    let glowY = random(-5, 5); // Random position within a range
-    canvas.fill(glowColor);
-    canvas.noStroke();
-    canvas.ellipse(x + glowX, y + glowY, glowSize, glowSize);
-    canvas.noStroke();
-  }
-
-  // Draw the core light
-  canvas.fill(lightColor);
-  canvas.noStroke();
-  canvas.ellipse(x + 5, y - 2, 10, 10);
-  canvas.noStroke();
-}
-
-// Draw Rocks
-function drawRocks(amount) {
-  for (let i = 0; i < amount; i++) {
-    let x = random(width);
-    let y = random(height);
-    let size = random(10, 25);
-    
-    // Only add rock if it doesn't overlap with existing objects
-    if (!isTooClose(x, y, size)) {
-      staticCanvas.fill(125, 125, 125, 200); // Specify color on staticCanvas
-      staticCanvas.noStroke(); // No border on staticCanvas
-      staticCanvas.ellipse(x, y, size, size * random(0.5, 0.8)); // Draw ellipse on staticCanvas
-      objects.push({x, y, size}); // Store object information for collision detection or other logic
-    }
-  }
 }
 
 // Draw Mushroom
@@ -332,11 +292,205 @@ function drawDirt(x, y, amount, canvas) {
   }
 }
 
+// Draw Flowers
+function drawFlower(x, y, size, canvas) {
+  let petalColor = color(255, 255, 0, 125); // Semi-transparent yellow
+  let numPetals = 8; // Number of petals for a simple flower
+  let petalLength = size * 0.7; // Petal length
+  let petalWidth = size * 0.7; // Petal width
+  let numLayers = 3; // Number of layers to create the hazy effect
+  let centerColor = color(255, 165, 0, 200); // Semi-transparent orange for the center
+
+  canvas.push();
+  canvas.translate(x, y);
+
+  // Draw hazy petals
+  for (let j = 0; j < numLayers; j++) { // Layer loop
+    for (let i = 0; i < numPetals; i++) { // Petal loop
+      let angle = TWO_PI / numPetals * i;
+      canvas.rotate(angle);
+      canvas.fill(petalColor);
+      // Slightly vary the size for each layer to create a hazy effect
+      let currentSize = size - j * size * 0.1;
+      canvas.ellipse(0, currentSize / 2, petalWidth, petalLength);
+    }
+  }
+
+  // Draw center
+  canvas.fill(centerColor);
+  canvas.ellipse(0, 0, size * 0.4, size * 0.4);
+
+  canvas.pop();
+}
+
+function drawLeaf(x, y, size, canvas) {
+  // Define possible leaf colors as RGB arrays for easier manipulation
+  const leafColors = [
+    [30, 150, 30],  // Green
+    [255, 215, 0],  // Yellow
+    [165, 42, 42]   // Brown
+  ];
+
+  // Select a random leaf color and create p5 Color object
+  let colorIndex = Math.floor(random(leafColors.length));
+  let rgb = leafColors[colorIndex]; // Array of RGB values
+  let leafColor = color(rgb[0], rgb[1], rgb[2]);
+
+  // Create a darker version of the leaf color for the stroke/vein
+  // Ensure the RGB values do not drop below 0
+  let darkerLeafColor = color(max(0, rgb[0]), max(0, rgb[1]), max(0, rgb[2]));
+
+  canvas.push();
+  canvas.translate(x, y);
+
+  // Rotate the leaf by a random angle
+  canvas.rotate(random(TWO_PI));
+
+  // Apply transparency for the hazy look
+  canvas.fill(leafColor.levels[0], leafColor.levels[1], leafColor.levels[2], 100);
+
+  // Set stroke to the darker version of the leaf color
+  canvas.stroke(darkerLeafColor, 100);
+  canvas.strokeWeight(2);
+
+  // Drawing the leaf with hazy effect
+  for (let i = 0; i < 3; i++) {
+    canvas.beginShape();
+    canvas.curveVertex(-size / 2 + random(-2, 2), random(-2, 2)); // Adding variation
+    canvas.curveVertex(random(-2, 2), -size / 4 + random(-2, 2));
+    canvas.curveVertex(size / 2 + random(-2, 2), random(-2, 2));
+    canvas.curveVertex(random(-2, 2), size / 4 + random(-2, 2));
+    canvas.endShape(CLOSE);
+  }
+
+  // Draw the central vein line
+  canvas.line(-size / 2, 0, size / 2, 0);
+
+  canvas.pop();
+}
+
+// Draw Scattered Leaves
+function drawScatteredLeaves(canvas) {
+  leaves.forEach(leaf => {
+    drawLeaf(leaf.x, leaf.y, leaf.size, canvas);
+  });
+}
+
 //---------------------------
-// Animate Various Things
+// Draw Animated Items
 //---------------------------
+// Adjusted Draw a Bee function to accept canvas as parameter
+function drawBee(x, y, canvas) {
+  // Random angle for a slight tilt
+  let angle = random(-PI / 12, PI / 12); // +/- 15 degrees
+
+  canvas.push(); // Isolate transformations
+  canvas.translate(x, y);
+  canvas.rotate(angle);
+
+  // Body of the bee
+  canvas.fill(255, 200, 0); // Yellow
+  canvas.noStroke();
+  canvas.ellipse(0, 0, 30, 15); // Adjusted position due to translate
+  canvas.noStroke();
+
+  // Bee's stripes
+  canvas.fill(0); // Black
+  canvas.noStroke();
+  canvas.rect(3, -8, 4, 15, 2);
+  canvas.rect(-4, -8, 4, 15, 2);
+  canvas.rect(-11, -7, 4, 13, 2);
+  canvas.noStroke();
+
+  // Wings
+  canvas.fill(255, 255, 255, 150); // Semi-transparent white
+  canvas.ellipse(-8, -12, 30, 15); // Left wing
+  canvas.ellipse(0, -12, 30, 15); // Right wing
+  canvas.noStroke();
+
+  canvas.pop(); // Reset transformation state
+}
+
+// Draw Fireflies dynamically
+function drawFireflies() {
+  for (let i = 0; i < 10; i++) {
+    let fireflyX = random(100, width - 100);
+    let fireflyY = random(100, height - 100);
+    drawFirefly(fireflyX, fireflyY, dynamicCanvas); // Pass dynamicCanvas as an argument
+  }
+}
+
+// Adjusted Draw a Firefly function to accept canvas as parameter
+function drawFirefly(x, y, canvas) {
+  let bodyColor = canvas.color(255, 255, 0, 100); // Translucent yellow for the body
+  let lightColor = canvas.color(255, 255, 0, 50); // Translucent yellow for the light
+  let glowColor = canvas.color(255, 255, 0, 20); // Very translucent yellow for glow
+
+  // Draw firefly's body
+  canvas.fill(bodyColor);
+  canvas.noStroke();
+  canvas.ellipse(x, y, 10, 5);
+  canvas.noStroke();
+
+  // Draw firefly's light with a glowing effect
+  for (let i = 0; i < 10; i++) {
+    let glowSize = random(20, 30); // Random size for the glow
+    let glowX = random(-5, 5); // Random position within a range
+    let glowY = random(-5, 5); // Random position within a range
+    canvas.fill(glowColor);
+    canvas.noStroke();
+    canvas.ellipse(x + glowX, y + glowY, glowSize, glowSize);
+    canvas.noStroke();
+  }
+
+  // Draw the core light
+  canvas.fill(lightColor);
+  canvas.noStroke();
+  canvas.ellipse(x + 5, y - 2, 10, 10);
+  canvas.noStroke();
+}
+
+// Draw Falling Leaves
+function drawFallingLeaves(canvas) {
+  fallingLeaves.forEach(leaf => {
+    drawFallingLeaf(leaf.x, leaf.y, leaf.size, leaf.rotation, leaf.color, canvas);
+  });
+}
+
+// Draw Falling Leaf
+function drawFallingLeaf(x, y, size, rotation, leafColor, canvas) {
+  canvas.push();
+  canvas.translate(x, y);
+  canvas.rotate(rotation);
+
+  // Set fill and stroke based on the assigned leaf color
+  canvas.fill(leafColor[0], leafColor[1], leafColor[2], 100); // Use assigned leaf color
+  canvas.stroke(leafColor[0], leafColor[1], leafColor[2], 100); // Use assigned leaf color
+  canvas.strokeWeight(2);
+
+  // Draw the leaf shape
+  for (let i = 0; i < 3; i++) {
+    canvas.beginShape();
+    canvas.curveVertex(-size / 2 + random(-2, 2), random(-2, 2));
+    canvas.curveVertex(random(-2, 2), -size / 4 + random(-2, 2));
+    canvas.curveVertex(size / 2 + random(-2, 2), random(-2, 2));
+    canvas.curveVertex(random(-2, 2), size / 4 + random(-2, 2));
+    canvas.endShape(CLOSE);
+  }
+
+  // Draw the central vein line
+  canvas.line(-size / 2, 0, size / 2, 0);
+
+  canvas.pop();
+}
+
+//---------------------------
+// Animate Things
+//---------------------------
+// Animate Bees
 function animateBees(canvas) {
   canvas.clear(); // Clear the dynamicCanvas
+
   for (let bee of bees) {
     // Update bee's position by a small random amount
     bee.x += random(-3, 3);
@@ -351,6 +505,7 @@ function animateBees(canvas) {
   }
 }
 
+// Animate Fireflies
 function animateFireflies(canvas) {
   canvas.clear(); // Clear the dynamicCanvas
   for (let firefly of fireflies) {
@@ -365,6 +520,34 @@ function animateFireflies(canvas) {
     // Draw the firefly in its new position
     drawFirefly(firefly.x, firefly.y, canvas);
   }
+}
+
+// Animate Falling Leaves
+function animateFallingLeaves(canvas) {
+    fallingLeaves.forEach((leaf, index) => {
+        leaf.y += leaf.speed; // Move leaf down
+        leaf.rotation += 0.01; // Add some rotation for realism
+
+        // Draw the falling leaf with its updated position and rotation
+        drawFallingLeaf(leaf.x, leaf.y, leaf.size, leaf.rotation, leaf.color, canvas);
+
+        // Set a minimum speed threshold to prevent leaves from getting stuck
+        if (leaf.speed < 0.1) {
+            leaf.speed = 0.2;
+        }
+
+        // Reset leaf position if it falls beyond the canvas
+        if (leaf.y > height) {
+            fallingLeaves[index] = {
+                x: random(width),
+                y: -100,
+                size: random(30, 100),
+                rotation: random(TWO_PI),
+                speed: random(0.2, 1.5), // Adjusted speed range to slow down further
+                color: [random(100, 255), random(50, 150), 0] // Random leaf color
+            };
+        }
+    });
 }
 
 //---------------------------
@@ -415,8 +598,14 @@ function placeMushroom() {
 function placeCaterpillar() {
     let attempts = 0;
     while (attempts < 100) { // Limit attempts to prevent infinite loops
-        let x = random(width);
-        let y = random(height);
+        // Define the range for the center 60% of the canvas
+        let centerXRange = width * 0.2; // 20% margin on each side
+        let centerYRange = height * 0.2; // 20% margin on each side
+
+        // Generate random coordinates within the defined range
+        let x = random(width * 0.4, width * 0.6); // Center 60% horizontally
+        let y = random(height * 0.4, height * 0.6); // Center 60% vertically
+        
         // Define caterpillar dimensions roughly, considering its length and assuming a fixed height
         let caterpillarLength = 7 * 20 * 0.6; // Length based on your drawing logic
         let caterpillarHeight = 20; // An assumed height for simplicity
@@ -431,6 +620,73 @@ function placeCaterpillar() {
     }
 }
 
-//---------------------------
-// Classes
-//---------------------------
+
+// Function to check if a point (x, y) with a given size collides with any mushrooms
+function collidesWithMushrooms(x, y, size, mushrooms) {
+  for (let mushroom of mushrooms) {
+    let d = dist(x, y, mushroom.x, mushroom.y);
+    if (d < size + mushroom.size) {
+      return true; // There is a collision if they are too close
+    }
+  }
+  return false; // No collision with any mushrooms
+}
+
+// Scatter Flowers to avoid mushrooms
+function scatterFlowers(canvas) {
+  let flowerCount = Math.floor(random(5, 20));; // Adjust based on desired density
+  for (let i = 0; i < flowerCount; i++) {
+    let safeSpotFound = false;
+    let x, y, flowerSize;
+
+    // Keep trying random positions until one doesn't collide with mushrooms or rocks
+    while (!safeSpotFound) {
+      x = random(canvas.width);
+      y = random(canvas.height);
+      flowerSize = random(10, 20); // Size range for flowers
+
+      // Assume the 'objects' array has elements with {x, y, size}
+      safeSpotFound = true; // Start by assuming the spot is safe, and try to prove otherwise
+      for (let obj of objects) {
+        let distance = dist(x, y, obj.x, obj.y);
+        if (distance < flowerSize + obj.size) {
+          safeSpotFound = false; // Collision detected, break out and try another spot
+          break;
+        }
+      }
+    }
+
+    // If a safe spot is found, draw the flower
+    drawFlower(x, y, flowerSize, canvas);
+  }
+}
+
+// Scatter Leaves to avoid mushrooms and other objects
+function scatterLeaves(canvas) {
+  let leafCount = Math.floor(random(10, 30)); // Adjust based on desired density
+
+  for (let i = 0; i < leafCount; i++) {
+    let safeSpotFound = false;
+    let x, y, leafSize;
+
+    // Keep trying random positions until one doesn't collide with mushrooms or rocks
+    while (!safeSpotFound) {
+      x = random(canvas.width);
+      y = random(canvas.height);
+      leafSize = random(50, 100); // Size range for leaves, adjust as needed
+
+      // Assume the 'objects' array has elements with {x, y, size}
+      safeSpotFound = true; // Start by assuming the spot is safe, and try to prove otherwise
+      for (let obj of objects) {
+        let distance = dist(x, y, obj.x, obj.y);
+        if (distance < leafSize + obj.size) { // Adjust collision criteria as needed
+          safeSpotFound = false; // Collision detected, break out and try another spot
+          break;
+        }
+      }
+    }
+
+    // If a safe spot is found, draw the leaf
+    drawLeaf(x, y, leafSize, canvas);
+  }
+}
