@@ -104,10 +104,13 @@ function drawStaticElements() {
 
   if (currentGradient === 0) {
     scatterFlowers(staticCanvas);
+    describe('A brightly lit forest path way on a Spring day, filled with spotted red mushrooms and small yellow flowers. There are bees happily buzzing around.');
   } else if (currentGradient === 1) {
     placeCaterpillar();
-    scatterLeaves(staticCanvas); // Scatter 50 leaves
+    scatterLeaves(staticCanvas);
+    describe('A forest path way on a bright Autumn day, filled with spotted red mushrooms, fallen leaves, and a lone caterpillar. There are leaves falling from above.')
   } else if (currentGradient === 2) {
+    describe('A serene dimly lit forest path way at night, filled with spotted red mushrooms. There are glowing fireflies actively buzzing around.');
   }
 }
 
