@@ -1,6 +1,6 @@
 # Mushrooms
 
-"Mushrooms" presents a charming tribute to nature through the lens of generative art using p5.js. It features an animated, ever-changing landscape populated by various mushrooms and friends, embodying a serene and whimsical atmosphere. This digital art piece combines technology and organic themes, showcasing the possibilities of p5.js in creating dynamic, nature-inspired visuals. It's a delightful exploration of animation and generative art, inviting viewers to appreciate the digital representation of natural growth and harmony.
+"Mushrooms" presents a charming tribute to nature through the lens of generative art using p5.js. It features an animated, ever-changing landscape populated by various mushrooms and friends, embodying a serene and whimsical atmosphere. This piece uses no images to render the scene, relying instead on thoughtfully combined code and randomization - demonstrating the possibilities of p5.js in creating dynamic, nature-inspired visuals. It's a delightful exploration of animation and generative art, inviting viewers to appreciate the digital representation of natural variation and harmony.
 
 ## Technology
 

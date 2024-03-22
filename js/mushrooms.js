@@ -74,7 +74,7 @@ function animate(canvas) {
 //---------------------------
 // Draw Static Elements
 function drawStaticElements() {
-  background(255);
+  background('#845914');
   currentGradient = floor(random(3));
   drawBackground(currentGradient);
   drawRocks();
